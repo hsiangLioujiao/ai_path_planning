@@ -54,9 +54,9 @@ def get_route_data(coords_list, search_dist):
     
     # 下載路網(使用 drive 駕車模式)
     G = ox.graph_from_point((center_lat, center_lon), dist=search_dist, network_type='drive')
-    G = ox.add_edge_speeds(G) # 補齊缺失速限(使用預設補齊邏輯)'speed_kph'
-    G = ox.add_edge_travel_times(G)
-    print("完成路網下載")
+    # G = ox.add_edge_speeds(G) # 補齊缺失速限(使用預設補齊邏輯)'speed_kph'
+    # G = ox.add_edge_travel_times(G)
+    # print("完成路網下載")
     
     # 逐段規劃路徑
     full_route = []
@@ -68,12 +68,12 @@ def get_route_data(coords_list, search_dist):
         # 尋找最近的節點(舊版本參數順序可能不同，建議明確指定 X, Y)
         orig_node = ox.distance.nearest_nodes(G, X=s_lon, Y=s_lat)
         dest_node = ox.distance.nearest_nodes(G, X=e_lon, Y=e_lat)
-        print("完成最近節點尋找")
+        # print("完成最近節點尋找")
         
         # 計算最短路徑(Dijkstra 演算法)與路徑長度
         sub_route = nx.shortest_path(G, orig_node, dest_node, weight='length') # 會回傳一個包含節點編號的串列，例如：[102, 105, 210, ...]。
         sub_dist = nx.shortest_path_length(G, orig_node, dest_node, weight='length') # 公尺
-        print("完成最短路徑規劃")
+        # print("完成最短路徑規劃")
         
         if not full_route:
             full_route.extend(sub_route)
@@ -85,16 +85,16 @@ def get_route_data(coords_list, search_dist):
     for u, v in zip(full_route[:-1], full_route[1:]):
         edge_info = G.get_edge_data(u, v)[0] # 若為MultiDiGraph(OSMNX預設)，需取index 0
         length = edge_info.get('length') # 距離(公尺)
-        speed = edge_info.get('maxspeed') # 道路等級速限(可能為字串或列表)
-        filling_speed = edge_info.get('speed_kph')
+        # speed = edge_info.get('maxspeed') # 道路等級速限(可能為字串或列表)
+        # filling_speed = edge_info.get('speed_kph')
         name = edge_info.get('name') # 路名
-        print(f"從節點 {u} 到 {v}：路名 {name}, 距離 {length:.1f}m, 速限 {speed}→{filling_speed}")
+        # print(f"從節點 {u} 到 {v}：路名 {name}, 距離 {length:.1f}m, 速限 {speed}→{filling_speed}")
     
 
     # ##########################
     # 將圖資路徑轉換為GeoDataFrame
-    print()
-    print(ox.graph_to_gdfs(G, nodes=False)[['highway', 'speed_kph', 'travel_time']].head(10))
+    # print()
+    # print(ox.graph_to_gdfs(G, nodes=False)[['highway', 'speed_kph', 'travel_time']].head(10))
     route_gdf = ox.routing.route_to_gdf(G, full_route)
     route_gdf.to_csv(".//data//test_gdf.csv", encoding= 'utf-8-sig', index=False)
 
