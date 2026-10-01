@@ -11,7 +11,7 @@ import networkx as nx
 import folium
 
 
-pd.options.mode.copy_on_write = True
+# pd.options.mode.copy_on_write = True
 fm.fontManager.addfont('TaipeiSansTCBeta-Regular.ttf')
 plt.rcParams["font.size"] = 14
 plt.rcParams['font.family'] = 'Taipei Sans TC Beta'
@@ -166,7 +166,7 @@ coords_list = list(zip(full_df['緯度'], full_df['經度']))
 
 
 st.sidebar.markdown("---")
-dist_slider = st.sidebar.slider("**搜尋範圍** (公尺)", 1000, 100000, 5000)
+dist_slider = st.sidebar.slider("**搜尋範圍** (公尺)", 1000, 10000, 2000)
 
 
 col1, col2 = st.columns([1, 2])
