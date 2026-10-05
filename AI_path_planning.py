@@ -143,7 +143,7 @@ def get_route_data(coords_list, search_dist):
 
 
 st.title("🗺️ 大貨車行駛路徑規劃及用油量預測 V0.11")
-st.subheader("這是一個應用 OSMnx 與 Folium 的簡易路徑規劃範例。")
+st.subheader("這是一個應用 OSMnx 與 Folium 的簡易路徑規劃")
 st.markdown("---")
 
 
