@@ -20,7 +20,7 @@ ox.settings.use_cache = True
 ox.settings.log_console = True
 
 # 更換 Overpass API 伺服器網址
-ox.settings.overpass_endpoint = "https://nchc.org.tw" # 鏡像 (台灣國網中心)
+ox.settings.overpass_url = "https://nchc.org.tw"
 
 # 設定明確的 User-Agent (向伺服器表明身份，降低被封鎖機率)
 ox.settings.user_agent = "My_Osmnx_Learning"
