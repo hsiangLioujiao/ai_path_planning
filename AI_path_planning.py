@@ -4,28 +4,37 @@ import pandas as pd
 import matplotlib
 import matplotlib.pyplot as plt
 from matplotlib import font_manager as fm
-# import seaborn as sns
 import streamlit as st
 import osmnx as ox
 import networkx as nx
 import folium
 
 
-# pd.options.mode.copy_on_write = True
 fm.fontManager.addfont('TaipeiSansTCBeta-Regular.ttf')
 plt.rcParams["font.size"] = 14
 plt.rcParams['font.family'] = 'Taipei Sans TC Beta'
 st.set_page_config(page_title="功能打樣版 僅供3人同時使用", page_icon = "random", layout="wide")
 
+# 在 osmnx 中啟用快取（Cache）功能。這樣相同的請求只會下載一次，之後都會從本地讀取，避免頻繁發送網路請求
+ox.settings.use_cache = True
+ox.settings.log_console = True
 
-# 彰化火車站座標(24.0817, 120.5385)
+# 更換 Overpass API 伺服器網址
+ox.settings.overpass_endpoint = "https://nchc.org.tw" # 鏡像 (台灣國網中心)
+
+# 設定明確的 User-Agent (向伺服器表明身份，降低被封鎖機率)
+ox.settings.user_agent = "My_Osmnx_Learning"
+
+# 延長逾時時間 (避免大型資料下載到一半斷線)
+ox.settings.timeout = 180
+
+
 # 車輛中心座標(24.0622, 120.3856)
 if "start_node" not in st.session_state:
     st.session_state.start_node = pd.DataFrame([{"名稱": "車輛中心", "緯度": 24.0622, "經度": 120.3856}])
 # 洋厝座標(24.09934869695348, 120.45080839620647)
 if "mid_nodes" not in st.session_state:
     st.session_state.mid_nodes = pd.DataFrame({"名稱":["洋厝"], "緯度":[24.0993], "經度":[120.4508]})
-# 八卦山大佛座標(24.0786, 120.5485)
 # 線西座標(24.1333, 120.4642)
 if "end_node" not in st.session_state:
     st.session_state.end_node = pd.DataFrame([{"名稱": "線西", "緯度": 24.1333, "經度": 120.4642}])
@@ -54,9 +63,9 @@ def get_route_data(coords_list, search_dist):
     
     # 下載路網(使用 drive 駕車模式)
     G = ox.graph_from_point((center_lat, center_lon), dist=search_dist, network_type='drive')
-    # G = ox.add_edge_speeds(G) # 補齊缺失速限(使用預設補齊邏輯)'speed_kph'
-    # G = ox.add_edge_travel_times(G)
-    # print("完成路網下載")
+    G = ox.add_edge_speeds(G) # 補齊缺失速限(使用預設補齊邏輯)'speed_kph'
+    G = ox.add_edge_travel_times(G)
+    print("完成路網下載")
     
     # 逐段規劃路徑
     full_route = []
@@ -68,12 +77,12 @@ def get_route_data(coords_list, search_dist):
         # 尋找最近的節點(舊版本參數順序可能不同，建議明確指定 X, Y)
         orig_node = ox.distance.nearest_nodes(G, X=s_lon, Y=s_lat)
         dest_node = ox.distance.nearest_nodes(G, X=e_lon, Y=e_lat)
-        # print("完成最近節點尋找")
+        print("完成最近節點尋找")
         
         # 計算最短路徑(Dijkstra 演算法)與路徑長度
         sub_route = nx.shortest_path(G, orig_node, dest_node, weight='length') # 會回傳一個包含節點編號的串列，例如：[102, 105, 210, ...]。
         sub_dist = nx.shortest_path_length(G, orig_node, dest_node, weight='length') # 公尺
-        # print("完成最短路徑規劃")
+        print("完成最短路徑規劃")
         
         if not full_route:
             full_route.extend(sub_route)
@@ -85,16 +94,16 @@ def get_route_data(coords_list, search_dist):
     for u, v in zip(full_route[:-1], full_route[1:]):
         edge_info = G.get_edge_data(u, v)[0] # 若為MultiDiGraph(OSMNX預設)，需取index 0
         length = edge_info.get('length') # 距離(公尺)
-        # speed = edge_info.get('maxspeed') # 道路等級速限(可能為字串或列表)
-        # filling_speed = edge_info.get('speed_kph')
+        speed = edge_info.get('maxspeed') # 道路等級速限(可能為字串或列表)
+        filling_speed = edge_info.get('speed_kph')
         name = edge_info.get('name') # 路名
-        # print(f"從節點 {u} 到 {v}：路名 {name}, 距離 {length:.1f}m, 速限 {speed}→{filling_speed}")
+        print(f"從節點 {u} 到 {v}：路名 {name}, 距離 {length:.1f}m, 速限 {speed}→{filling_speed}")
     
 
     # ##########################
     # 將圖資路徑轉換為GeoDataFrame
-    # print()
-    # print(ox.graph_to_gdfs(G, nodes=False)[['highway', 'speed_kph', 'travel_time']].head(10))
+    print()
+    print(ox.graph_to_gdfs(G, nodes=False)[['highway', 'speed_kph', 'travel_time']].head(10))
     route_gdf = ox.routing.route_to_gdf(G, full_route)
     route_gdf.to_csv(".//data//test_gdf.csv", encoding= 'utf-8-sig', index=False)
 
@@ -133,7 +142,9 @@ def get_route_data(coords_list, search_dist):
 
 
 
-st.title("🗺️ 大貨車行駛路徑規劃及用油量預測")
+st.title("🗺️ 大貨車行駛路徑規劃及用油量預測 V0.11")
+st.subheader("這是一個應用 OSMnx 與 Folium 的簡易路徑規劃範例。")
+st.markdown("---")
 
 
 st.sidebar.header("座標設定")
@@ -164,9 +175,8 @@ edit_end = st.sidebar.data_editor(
 full_df = pd.concat([edit_start, edit_mid, edit_end], ignore_index=True)
 coords_list = list(zip(full_df['緯度'], full_df['經度']))
 
-
 st.sidebar.markdown("---")
-dist_slider = st.sidebar.slider("**搜尋範圍** (公尺)", 1000, 10000, 2000)
+dist_slider = st.sidebar.slider("**搜尋範圍** (公尺)", 1000, 10000, 5000)
 
 
 col1, col2 = st.columns([1, 2])
@@ -197,15 +207,19 @@ with col2:
                 st.rerun() 
             except Exception as e:
                 st.error(f"規劃失敗: {e}")
-                st.warning("提示：請嘗試調大側邊欄的「搜尋範圍」，或是檢查座標是否在陸地上。")
+                # st.warning("提示：請嘗試調大側邊欄的「搜尋範圍」，或是檢查座標是否在陸地上。")
     else:
         if not st.session_state.path_planning:
             st.info("👈 請在左側欄位輸入座標，然後點擊「開始規劃及預測」按鈕。")
 
     if st.session_state.map_html:
         st.success("路徑規劃完成！")
-        st.iframe(st.session_state.map_html, height=350)     
+        st.iframe(st.session_state.map_html, height=400)     
 
 if st.session_state.map_html:
+    st.markdown("---")
+    st.write("**備註：**")
+    st.write("預估用油量功能仍開發中。")
+    st.markdown("---")
     st.write("**參考資料：**")
     st.write("Boeing, G. (2025). Modeling and Analyzing Urban Networks and Amenities with OSMnx. Geographical Analysis 57 (4), 567-577. doi:10.1111/gean.70009")
